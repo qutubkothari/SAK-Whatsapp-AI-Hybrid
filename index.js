@@ -170,6 +170,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Favicon
+app.get('/favicon.ico', (req, res) => {
+    res.status(204).end(); // No content
+});
+
 // App Engine health probe path
 app.get('/_ah/health', (_req, res) => {
   res.status(200).send('ok');
@@ -281,6 +286,117 @@ app.post('/api/desktop-agent/message-sent', async (req, res) => {
   } catch (error) {
     console.error('[DESKTOP_AGENT] Message sent error:', error);
     res.status(500).json({ error: 'Failed to track message' });
+  }
+});
+
+// Agent Login API (MUST be before app.use('/api', apiRouter))
+app.post('/api/agent-login', async (req, res) => {
+  try {
+    let { phone, password } = req.body;
+    
+    if (!phone || !password) {
+      return res.status(400).json({ error: 'Missing phone or password' });
+    }
+
+    // Sanitize phone: remove +, spaces, dashes
+    phone = phone.replace(/[^0-9]/g, '');
+
+    // Query tenant by phone
+    const { data: tenant, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('phone', phone)
+      .single();
+
+    if (error || !tenant) {
+      console.log('[AGENT_LOGIN] Tenant not found:', phone);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password (simple comparison - use bcrypt in production)
+    if (tenant.password !== password) {
+      console.log('[AGENT_LOGIN] Invalid password for:', phone);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log(`[AGENT_LOGIN] Login successful: ${phone} | Tenant: ${tenant.id}`);
+    
+    res.json({
+      ok: true,
+      tenantId: tenant.id,
+      email: tenant.email,
+      businessName: tenant.business_name
+    });
+
+  } catch (error) {
+    console.error('[AGENT_LOGIN] Error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Agent Register API (MUST be before app.use('/api', apiRouter))
+app.post('/api/agent-register', async (req, res) => {
+  try {
+    let { phone, email, businessName, password } = req.body;
+    
+    if (!phone || !email || !businessName || !password) {
+      return res.status(400).json({ error: 'Missing required fields (phone, email, businessName, password)' });
+    }
+
+    // Sanitize phone: remove +, spaces, dashes
+    phone = phone.replace(/[^0-9]/g, '');
+    
+    if (phone.length < 10) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+
+    // Check if phone already exists
+    const { data: existingTenant } = await supabase
+      .from('tenants')
+      .select('id')
+      .eq('phone', phone)
+      .single();
+
+    if (existingTenant) {
+      return res.status(400).json({ error: 'Phone number already registered' });
+    }
+
+    // Generate tenant ID
+    const tenantId = `TENANT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create tenant with password
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert({
+        id: tenantId,
+        phone: phone,
+        email: email,
+        business_name: businessName,
+        password: password,  // Store password (use bcrypt in production)
+        status: 'registered',
+        plan: 'free',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[AGENT_REGISTER] Supabase error:', error);
+      return res.status(500).json({ error: 'Registration failed: ' + error.message });
+    }
+
+    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${email} | ${businessName}`);
+    
+    res.json({
+      ok: true,
+      tenantId: tenantId,
+      email: email,
+      businessName: businessName
+    });
+
+  } catch (error) {
+    console.error('[AGENT_REGISTER] Error:', error);
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
@@ -1167,106 +1283,7 @@ app.get('/agent-login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'agent-login.html'));
 });
 
-// Agent Login API
-app.post('/api/agent-login', async (req, res) => {
-  try {
-    const { phone, password } = req.body;
-    
-    if (!phone || !password) {
-      return res.status(400).json({ error: 'Missing phone or password' });
-    }
-
-    // Query tenant by phone
-    const { data: tenant, error } = await supabase
-      .from('tenants')
-      .select('*')
-      .eq('phone', phone)
-      .single();
-
-    if (error || !tenant) {
-      console.log('[AGENT_LOGIN] Tenant not found:', phone);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Verify password (simple comparison - use bcrypt in production)
-    if (tenant.password !== password) {
-      console.log('[AGENT_LOGIN] Invalid password for:', phone);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    console.log(`[AGENT_LOGIN] Login successful: ${phone} | Tenant: ${tenant.id}`);
-    
-    res.json({
-      ok: true,
-      tenantId: tenant.id,
-      email: tenant.email,
-      businessName: tenant.business_name
-    });
-
-  } catch (error) {
-    console.error('[AGENT_LOGIN] Error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-// Agent Register API
-app.post('/api/agent-register', async (req, res) => {
-  try {
-    const { phone, email, businessName, password } = req.body;
-    
-    if (!phone || !email || !businessName || !password) {
-      return res.status(400).json({ error: 'Missing required fields (phone, email, businessName, password)' });
-    }
-
-    // Check if phone already exists
-    const { data: existingTenant } = await supabase
-      .from('tenants')
-      .select('id')
-      .eq('phone', phone)
-      .single();
-
-    if (existingTenant) {
-      return res.status(400).json({ error: 'Phone number already registered' });
-    }
-
-    // Generate tenant ID
-    const tenantId = `TENANT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    // Create tenant with password
-    const { data, error } = await supabase
-      .from('tenants')
-      .insert({
-        id: tenantId,
-        phone: phone,
-        email: email,
-        business_name: businessName,
-        password: password,  // Store password (use bcrypt in production)
-        status: 'registered',
-        plan: 'free',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[AGENT_REGISTER] Supabase error:', error);
-      return res.status(500).json({ error: 'Registration failed: ' + error.message });
-    }
-
-    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${email} | ${businessName}`);
-    
-    res.json({
-      ok: true,
-      tenantId: tenantId,
-      email: email,
-      businessName: businessName
-    });
-
-  } catch (error) {
-    console.error('[AGENT_REGISTER] Error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
+// Note: /api/agent-login and /api/agent-register are defined above (before apiRouter)
 
 // Register new tenant
 app.post('/api/register-tenant', async (req, res) => {

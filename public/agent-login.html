@@ -205,6 +205,11 @@
         <div class="alert alert-success" id="successAlert"></div>
         <div class="alert alert-error" id="errorAlert"></div>
         
+        <!-- Warning for direct access -->
+        <div id="directAccessWarning" style="display: none; background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <strong>⚠️ Testing Mode:</strong> Launched without desktop agent. You can register/login but won't be connected to the agent.
+        </div>
+        
         <div class="tabs">
             <div class="tab active" onclick="switchTab('login')">Login</div>
             <div class="tab" onclick="switchTab('register')">Register</div>
@@ -214,8 +219,9 @@
         <div id="loginTab" class="tab-content active">
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="loginPhone">Phone Number</label>
-                    <input type="tel" id="loginPhone" placeholder="+971 50 123 4567" required>
+                    <label for="loginPhone">Phone Number (no + or spaces)</label>
+                    <input type="tel" id="loginPhone" placeholder="971501234567" required>
+                    <small style="color: #666; font-size: 12px;">Example: 971501234567 (country code + number)</small>
                 </div>
                 <div class="form-group">
                     <label for="loginPassword">Password</label>
@@ -229,8 +235,9 @@
         <div id="registerTab" class="tab-content">
             <form id="registerForm">
                 <div class="form-group">
-                    <label for="regPhone">Phone Number</label>
-                    <input type="tel" id="regPhone" placeholder="+971 50 123 4567" required>
+                    <label for="regPhone">Phone Number (no + or spaces)</label>
+                    <input type="tel" id="regPhone" placeholder="971501234567" required>
+                    <small style="color: #666; font-size: 12px;">Example: 971501234567 (country code + number)</small>
                 </div>
                 <div class="form-group">
                     <label for="regEmail">Email Address</label>
@@ -267,9 +274,17 @@
         const urlParams = new URLSearchParams(window.location.search);
         const callbackUrl = urlParams.get('callback');
         
+        console.log('Callback URL:', callbackUrl); // Debug log
+        
+        // Show warning if no callback (direct access)
         if (!callbackUrl) {
-            showError('Invalid callback URL');
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('directAccessWarning').style.display = 'block';
+            });
         }
+        
+        // Only show error if no callback AND user tries to submit
+        let showedCallbackWarning = false;
         
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -303,6 +318,11 @@
         }
         
         async function notifyAgent(tenantId, phone, email) {
+            if (!callbackUrl) {
+                showError('No callback URL provided. Please launch from desktop agent.');
+                return;
+            }
+            
             try {
                 const response = await fetch(callbackUrl, {
                     method: 'POST',
@@ -327,7 +347,7 @@
         // Login Form
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const phone = document.getElementById('loginPhone').value;
+            const phone = document.getElementById('loginPhone').value.replace(/[^0-9]/g, ''); // Remove +, spaces, dashes
             const password = document.getElementById('loginPassword').value;
             const btn = e.target.querySelector('.btn');
             
@@ -360,7 +380,7 @@
         // Register Form
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const phone = document.getElementById('regPhone').value;
+            const phone = document.getElementById('regPhone').value.replace(/[^0-9]/g, ''); // Remove +, spaces, dashes
             const email = document.getElementById('regEmail').value;
             const businessName = document.getElementById('regBusinessName').value;
             const password = document.getElementById('regPassword').value;
