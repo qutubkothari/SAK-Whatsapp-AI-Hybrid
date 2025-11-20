@@ -339,8 +339,8 @@ app.post('/api/agent-register', async (req, res) => {
   try {
     let { phone, email, businessName, password } = req.body;
     
-    if (!phone || !email || !businessName || !password) {
-      return res.status(400).json({ error: 'Missing required fields (phone, email, businessName, password)' });
+    if (!phone || !businessName || !password) {
+      return res.status(400).json({ error: 'Missing required fields (phone, businessName, password)' });
     }
 
     // Sanitize phone: remove +, spaces, dashes
@@ -364,19 +364,26 @@ app.post('/api/agent-register', async (req, res) => {
     // Generate tenant ID
     const tenantId = `TENANT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Prepare insert data (email is optional)
+    const insertData = {
+      id: tenantId,
+      phone: phone,
+      business_name: businessName,
+      password: password,  // Store password (use bcrypt in production)
+      status: 'registered',
+      plan: 'free',
+      created_at: new Date().toISOString()
+    };
+    
+    // Add email only if provided
+    if (email) {
+      insertData.email = email;
+    }
+
     // Create tenant with password
     const { data, error } = await supabase
       .from('tenants')
-      .insert({
-        id: tenantId,
-        phone: phone,
-        email: email,
-        business_name: businessName,
-        password: password,  // Store password (use bcrypt in production)
-        status: 'registered',
-        plan: 'free',
-        created_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -385,12 +392,12 @@ app.post('/api/agent-register', async (req, res) => {
       return res.status(500).json({ error: 'Registration failed: ' + error.message });
     }
 
-    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${email} | ${businessName}`);
+    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${email || 'no-email'} | ${businessName}`);
     
     res.json({
       ok: true,
       tenantId: tenantId,
-      email: email,
+      email: email || '',
       businessName: businessName
     });
 
