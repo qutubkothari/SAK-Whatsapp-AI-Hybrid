@@ -404,6 +404,47 @@ app.post('/api/agent-register', async (req, res) => {
   }
 });
 
+// Get tenant ID by phone number (for desktop agent)
+app.post('/api/agent-get-tenant', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number required' });
+    }
+
+    // Sanitize phone number
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+    
+    console.log(`[AGENT_GET_TENANT] Looking up phone: ${cleanPhone}`);
+
+    // Query tenant by owner_whatsapp_number
+    const { data: tenant, error } = await supabase
+      .from('tenants')
+      .select('id, business_name, owner_whatsapp_number')
+      .eq('owner_whatsapp_number', cleanPhone)
+      .single();
+
+    if (error || !tenant) {
+      console.error('[AGENT_GET_TENANT] Not found:', error);
+      return res.status(404).json({ error: 'Phone number not registered' });
+    }
+
+    console.log(`[AGENT_GET_TENANT] Found tenant: ${tenant.id}`);
+
+    res.json({
+      ok: true,
+      tenantId: tenant.id,
+      businessName: tenant.business_name,
+      phone: tenant.owner_whatsapp_number
+    });
+
+  } catch (error) {
+    console.error('[AGENT_GET_TENANT] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch tenant' });
+  }
+});
+
 // Use the routers for their respective paths
 app.use('/webhook', webhookRouter);
 app.use('/status', statusWebhookRouter);

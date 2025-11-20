@@ -17,9 +17,10 @@ require('dotenv').config();
 // Configuration
 const CLOUD_SERVER_URL = process.env.CLOUD_SERVER_URL || 'http://13.62.57.240:8080';
 const LOCAL_PORT = process.env.LOCAL_PORT || 3001;
-let TENANT_ID = process.env.TENANT_ID || null;
+const WHATSAPP_PHONE = process.env.WHATSAPP_PHONE || '971507055253'; // Your WhatsApp number
+let TENANT_ID = null; // Will be fetched from cloud based on phone
 const API_KEY = process.env.API_KEY || '';
-let isAuthenticated = false;
+let isAuthenticated = true; // Auto-authenticate
 
 // Find Chrome executable
 function findChrome() {
@@ -105,43 +106,40 @@ localApp.post('/auth-callback', (req, res) => {
 
 // Start local server
 localApp.listen(LOCAL_PORT, () => {
-    console.log(`🏥 Local server running on http://localhost:${LOCAL_PORT}`);
+    console.log(`🏥 Health endpoint: http://localhost:${LOCAL_PORT}/health`);
 });
 
 console.log('🚀 Starting Desktop Agent...');
 console.log(`📡 Cloud Server: ${CLOUD_SERVER_URL}`);
+console.log(`📱 WhatsApp Phone: ${WHATSAPP_PHONE}`);
+console.log('\n🔄 Initializing WhatsApp...');
 
-// Check if already authenticated
-if (TENANT_ID && TENANT_ID !== 'your-tenant-id-here' && TENANT_ID !== 'default-tenant') {
-    console.log(`👤 Existing Tenant ID: ${TENANT_ID}`);
-    isAuthenticated = true;
-    console.log('✅ Already authenticated. Initializing WhatsApp...');
-    initializeWhatsApp();
-} else {
-    console.log('\n🔐 Authentication Required');
-    console.log('📱 Opening browser for login...\n');
+// Auto-start WhatsApp initialization
+initializeWhatsApp();
+
+async function initializeWhatsApp() {
+    console.log('\n🔍 Fetching tenant information...');
     
-    // Open browser to login page with callback URL
-    const loginUrl = `${CLOUD_SERVER_URL}/agent-login?callback=http://localhost:${LOCAL_PORT}/auth-callback`;
-    
-    // Open browser based on OS
-    const openCommand = process.platform === 'win32' ? 'start' : 
-                       process.platform === 'darwin' ? 'open' : 'xdg-open';
-    
-    exec(`${openCommand} "${loginUrl}"`, (error) => {
-        if (error) {
-            console.error('❌ Failed to open browser automatically.');
-            console.log(`\n📋 Please open this URL manually:\n${loginUrl}\n`);
+    try {
+        // Fetch tenant ID from cloud server using phone number
+        const response = await axios.post(`${CLOUD_SERVER_URL}/api/agent-get-tenant`, {
+            phoneNumber: WHATSAPP_PHONE
+        }, {
+            headers: { 'x-api-key': API_KEY }
+        });
+        
+        if (response.data && response.data.tenantId) {
+            TENANT_ID = response.data.tenantId;
+            console.log(`✅ Tenant ID: ${TENANT_ID}`);
+        } else {
+            console.error('❌ Phone number not registered. Please register first at:');
+            console.error(`   ${CLOUD_SERVER_URL}/agent-login.html`);
+            process.exit(1);
         }
-    });
-    
-    console.log('⏳ Waiting for authentication...');
-}
-
-function initializeWhatsApp() {
-    if (!TENANT_ID) {
-        console.error('❌ Cannot initialize WhatsApp: No Tenant ID');
-        return;
+    } catch (error) {
+        console.error('❌ Failed to fetch tenant info:', error.message);
+        console.error('   Please register at:', `${CLOUD_SERVER_URL}/agent-login.html`);
+        process.exit(1);
     }
     
     console.log('\n🔄 Initializing WhatsApp client...');
@@ -240,9 +238,10 @@ client.on('message', async (message) => {
         const from = message.from;
         const body = message.body;
         const isGroup = from.endsWith('@g.us');
+        const isStatus = from === 'status@broadcast';
         
-        // Ignore group messages
-        if (isGroup) return;
+        // Ignore group messages and status updates
+        if (isGroup || isStatus) return;
         
         console.log(`\n📨 Message from ${from}: ${body}`);
         
