@@ -317,7 +317,7 @@
             }, 3000);
         }
         
-        async function notifyAgent(tenantId, phone, email) {
+        async function notifyAgent(tenantId, phone) {
             if (!callbackUrl) {
                 showError('No callback URL provided. Please launch from desktop agent.');
                 return;
@@ -327,7 +327,7 @@
                 const response = await fetch(callbackUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tenantId, phone, email })
+                    body: JSON.stringify({ tenantId, phone })
                 });
                 
                 if (response.ok) {
@@ -364,7 +364,7 @@
                 const data = await response.json();
                 
                 if (response.ok && data.tenantId) {
-                    await notifyAgent(data.tenantId, phone, data.email);
+                    await notifyAgent(data.tenantId, phone);
                 } else {
                     showError(data.error || 'Login failed');
                     btn.disabled = false;
@@ -393,13 +393,13 @@
                 const response = await fetch('/api/agent-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, email, businessName, password })
+                    body: JSON.stringify({ phone, businessName, password })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok && data.tenantId) {
-                    await notifyAgent(data.tenantId, phone, email);
+                    await notifyAgent(data.tenantId, phone);
                 } else {
                     showError(data.error || 'Registration failed');
                     btn.disabled = false;

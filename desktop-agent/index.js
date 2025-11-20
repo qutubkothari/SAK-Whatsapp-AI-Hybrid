@@ -67,7 +67,7 @@ localApp.get('/health', (req, res) => {
 
 // Authentication callback endpoint
 localApp.post('/auth-callback', (req, res) => {
-    const { tenantId, phone, email } = req.body;
+    const { tenantId, phone } = req.body;
     
     if (!tenantId) {
         return res.status(400).json({ error: 'Missing tenant ID' });
@@ -88,7 +88,7 @@ localApp.post('/auth-callback', (req, res) => {
     
     fs.writeFileSync(envPath, envContent);
     
-    console.log(`\n✅ Authenticated as: ${email || phone}`);
+    console.log(`\n✅ Authenticated as: ${phone}`);
     console.log(`🆔 Tenant ID: ${tenantId}`);
     
     res.json({ 

@@ -324,7 +324,7 @@ app.post('/api/agent-login', async (req, res) => {
     res.json({
       ok: true,
       tenantId: tenant.id,
-      email: tenant.email || '',
+      phone: phone,
       businessName: tenant.business_name
     });
 
@@ -374,10 +374,7 @@ app.post('/api/agent-register', async (req, res) => {
       admin_phones: [phone]    // Owner is admin
     };
     
-    // Add email only if provided
-    if (email) {
-      insertData.email = email;
-    }
+    // Note: Email column doesn't exist in tenants table - storing phone only
 
     // Create tenant with password
     const { data, error } = await supabase
@@ -392,12 +389,12 @@ app.post('/api/agent-register', async (req, res) => {
     }
 
     const tenantId = data.id; // Get the auto-generated UUID
-    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${email || 'no-email'} | ${businessName}`);
+    console.log(`[AGENT_REGISTER] New tenant: ${tenantId} | ${phone} | ${businessName}`);
     
     res.json({
       ok: true,
       tenantId: tenantId,
-      email: email || '',
+      phone: phone,
       businessName: businessName
     });
 
