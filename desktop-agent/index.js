@@ -379,6 +379,28 @@ client.on('message', async (message) => {
         // Ignore group messages and status updates
         if (isGroup || isStatus) return;
         
+        // 🛡️ BOT DETECTION - Prevent bot-to-bot infinite loops
+        const botSignatures = [
+            'sorry, i cannot process',
+            'sorry i cannot process',
+            'i am temporarily unable to process',
+            'temporarily unable to process your message',
+            'cannot help',
+            'auto-reply',
+            'automated message',
+            'bot response',
+            'cannot understand your request'
+        ];
+        
+        const lowerBody = body.toLowerCase().trim();
+        const isBotMessage = botSignatures.some(sig => lowerBody.includes(sig));
+        
+        // Ignore messages from other bots
+        if (isBotMessage) {
+            console.log(`🤖 Ignoring bot message from ${from}: ${body.substring(0, 50)}...`);
+            return;
+        }
+        
         console.log(`\n📨 Message from ${from}: ${body}`);
         
         // Send to cloud server for AI processing
