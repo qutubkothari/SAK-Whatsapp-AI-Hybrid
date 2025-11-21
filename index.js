@@ -289,6 +289,45 @@ app.post('/api/desktop-agent/message-sent', async (req, res) => {
   }
 });
 
+// Waha Installation Endpoint
+app.post('/api/admin/install-waha', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const fs = require('fs');
+    
+    console.log('[WAHA] Starting installation...');
+    
+    // Check if install script exists
+    const scriptPath = path.join(__dirname, 'install-waha.sh');
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(404).json({ error: 'Installation script not found' });
+    }
+    
+    // Make script executable and run it
+    exec(`chmod +x ${scriptPath} && sudo bash ${scriptPath}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error('[WAHA] Installation error:', error);
+        return res.status(500).json({ 
+          error: 'Installation failed', 
+          details: error.message,
+          stderr: stderr 
+        });
+      }
+      
+      console.log('[WAHA] Installation output:', stdout);
+      res.json({ 
+        ok: true, 
+        message: 'Waha installed successfully',
+        output: stdout 
+      });
+    });
+    
+  } catch (error) {
+    console.error('[WAHA] Installation endpoint error:', error);
+    res.status(500).json({ error: 'Failed to start installation' });
+  }
+});
+
 // Agent Login API (MUST be before app.use('/api', apiRouter))
 app.post('/api/agent-login', async (req, res) => {
   try {
