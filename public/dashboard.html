@@ -4924,6 +4924,7 @@
             'tab_orders': 'orders',
             'tab_discounts': 'discounts',
             'tab_broadcast': 'broadcast',
+            'tab_whatsapp_web': 'whatsapp-web',
             'tab_analytics': 'analytics'
         };
         
@@ -4944,10 +4945,6 @@
                 }
             });
         });
-        
-        // Always show WhatsApp Web tab
-        const whatsappTabs = document.querySelectorAll('[data-tab="whatsapp-web"]');
-        whatsappTabs.forEach(el => el.style.display = '');
     }
 
     // ---------- Event listeners ----------

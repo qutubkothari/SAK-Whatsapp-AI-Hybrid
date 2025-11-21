@@ -566,6 +566,10 @@
                                                 <span class="text-sm">Broadcast</span>
                                             </label>
                                             <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" id="tab_whatsapp_web_${tenant.id}" class="rounded text-green-600">
+                                                <span class="text-sm">WhatsApp Web</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer">
                                                 <input type="checkbox" id="tab_analytics_${tenant.id}" class="rounded text-green-600">
                                                 <span class="text-sm">Analytics</span>
                                             </label>
@@ -603,7 +607,7 @@
                     const savedFeatures = JSON.parse(localStorage.getItem(`tenant_features_${tenant.id}`)) || {};
                     
                     // Set checkbox states - use saved settings or default to all enabled
-                    const features = ['bot_enabled', 'bot_product_discovery', 'bot_cart_management', 'bot_order_processing', 'bot_payment_links', 'bot_customer_support', 'tab_products', 'tab_customers', 'tab_orders', 'tab_discounts', 'tab_broadcast', 'tab_analytics'];
+                    const features = ['bot_enabled', 'bot_product_discovery', 'bot_cart_management', 'bot_order_processing', 'bot_payment_links', 'bot_customer_support', 'tab_products', 'tab_customers', 'tab_orders', 'tab_discounts', 'tab_broadcast', 'tab_whatsapp_web', 'tab_analytics'];
                     features.forEach(feature => {
                         const checkbox = document.getElementById(`${feature}_${tenant.id}`);
                         if (checkbox) {
@@ -646,6 +650,7 @@
                     tab_orders: document.getElementById(`tab_orders_${tenantId}`)?.checked || false,
                     tab_discounts: document.getElementById(`tab_discounts_${tenantId}`)?.checked || false,
                     tab_broadcast: document.getElementById(`tab_broadcast_${tenantId}`)?.checked || false,
+                    tab_whatsapp_web: document.getElementById(`tab_whatsapp_web_${tenantId}`)?.checked || false,
                     tab_analytics: document.getElementById(`tab_analytics_${tenantId}`)?.checked || false
                 };
 
