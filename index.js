@@ -378,14 +378,15 @@ const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'your-secret-key';
 
 // Helper function to make Waha API calls with auth
-async function wahaRequest(method, url, data = null) {
+async function wahaRequest(method, url, data = null, responseType = 'json') {
   const config = {
     method,
     url: `${WAHA_URL}${url}`,
     headers: {
       'Content-Type': 'application/json',
       'X-API-KEY': WAHA_API_KEY  // Waha expects uppercase X-API-KEY
-    }
+    },
+    responseType: responseType  // Support different response types
   };
   
   if (data) {
@@ -486,13 +487,15 @@ app.get('/api/waha/session/:sessionName/qr', async (req, res) => {
     
     console.log(`[WAHA] Getting QR code for: ${sessionName}`);
     
-    // Waha API endpoint for QR code (correct format: /api/{session}/auth/qr)
-    const response = await wahaRequest('GET', `/api/${sessionName}/auth/qr`);
+    // Waha API endpoint for QR code (returns PNG image)
+    const response = await wahaRequest('GET', `/api/${sessionName}/auth/qr`, null, 'arraybuffer');
 
-    // Waha returns raw base64 string directly, not wrapped in an object
+    // Convert PNG binary to base64
+    const base64Image = Buffer.from(response.data, 'binary').toString('base64');
+
     res.json({
       ok: true,
-      qr: response.data  // response.data is already the base64 string
+      qr: base64Image
     });
 
   } catch (error) {
