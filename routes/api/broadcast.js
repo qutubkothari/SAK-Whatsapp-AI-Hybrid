@@ -3,12 +3,13 @@ const router = express.Router();
 const { supabase } = require('../../services/config');
 const { sendMessage, sendMessageWithImage } = require('../../services/whatsappService');
 const { sendViaDesktopAgent, isDesktopAgentOnline } = require('../../services/desktopAgentBridge');
+const { sendBroadcastViaWaha } = require('../../index');
 
 /**
  * POST /api/broadcast/send
  * Send or schedule a broadcast message to multiple recipients
  * 
- * PRIORITY: Desktop Agent (FREE) → Maytapi (PAID FALLBACK)
+ * PRIORITY: User Preference (Waha/Desktop) → Desktop Agent (FREE) → Maytapi (PAID FALLBACK)
  */
 router.post('/send', async (req, res) => {
     try {
@@ -24,7 +25,8 @@ router.post('/send', async (req, res) => {
             batchSize = 10,
             messageDelay = 500,
             batchDelay = 2000,
-            forceMethod // 'desktop_agent' or 'maytapi' - for testing
+            forceMethod, // 'desktop_agent', 'waha', or 'maytapi' - for testing
+            botDeliveryMethod // From frontend: 'desktop' or 'cloud' (Waha)
         } = req.body;
 
         console.log('[BROADCAST_API] Request:', { 
@@ -36,7 +38,8 @@ router.post('/send', async (req, res) => {
             batchSize,
             messageDelay,
             batchDelay,
-            forceMethod
+            forceMethod,
+            botDeliveryMethod
         });
 
         // Validate required fields
@@ -63,8 +66,41 @@ router.post('/send', async (req, res) => {
             });
         }
 
+        // Priority 0: Check user preference for cloud bot (Waha 24/7)
+        if (botDeliveryMethod === 'cloud' && forceMethod !== 'desktop_agent' && forceMethod !== 'maytapi') {
+            console.log('[BROADCAST_API] ☁️ User selected Cloud Bot (Waha 24/7) - Using Waha!');
+            
+            try {
+                const result = await sendBroadcastViaWaha(
+                    'default', // Session name
+                    recipients,
+                    message,
+                    imageBase64,
+                    { batchSize, messageDelay, batchDelay }
+                );
+                
+                if (result.success) {
+                    return res.json({
+                        success: true,
+                        message: `Broadcast sent via Waha Cloud Bot (24/7)! ${result.totalSent} sent, ${result.totalFailed} failed.`,
+                        method: 'waha',
+                        details: {
+                            total: recipients.length,
+                            sent: result.totalSent,
+                            failed: result.totalFailed,
+                            successRate: result.summary?.successRate,
+                            status: 'completed'
+                        }
+                    });
+                }
+            } catch (wahaError) {
+                console.log('[BROADCAST_API] ⚠️ Waha failed:', wahaError.message);
+                // Fall through to desktop agent or Maytapi
+            }
+        }
+
         // Priority 1: Try Desktop Agent (FREE!)
-        if (forceMethod !== 'maytapi') {
+        if (forceMethod !== 'maytapi' && forceMethod !== 'waha') {
             console.log('[BROADCAST_API] 🔍 Checking desktop agent availability...');
             
             const agentOnline = await isDesktopAgentOnline(tenantId);

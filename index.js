@@ -697,6 +697,85 @@ app.post('/api/waha/session/:sessionName/restart', async (req, res) => {
   }
 });
 
+// Send broadcast via Waha (helper function for broadcast.js)
+async function sendBroadcastViaWaha(sessionName, recipients, message, imageBase64 = null, delays = {}) {
+  const results = [];
+  const batchSize = delays.batchSize || 10;
+  const messageDelay = delays.messageDelay || 500;
+  const batchDelay = delays.batchDelay || 2000;
+
+  console.log(`[WAHA_BROADCAST] Starting broadcast to ${recipients.length} recipients`);
+  console.log(`[WAHA_BROADCAST] Settings: batchSize=${batchSize}, messageDelay=${messageDelay}ms, batchDelay=${batchDelay}ms`);
+
+  for (let i = 0; i < recipients.length; i += batchSize) {
+    const batch = recipients.slice(i, i + batchSize);
+    console.log(`[WAHA_BROADCAST] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(recipients.length / batchSize)}`);
+
+    for (const recipient of batch) {
+      try {
+        const phone = recipient.phone || recipient;
+        const chatId = phone.includes('@') ? phone : `${phone}@c.us`;
+
+        if (imageBase64) {
+          // Send image with caption
+          await wahaRequest('POST', '/api/sendImage', {
+            session: sessionName,
+            chatId: chatId,
+            file: {
+              mimetype: 'image/jpeg',
+              data: imageBase64
+            },
+            caption: message
+          });
+        } else {
+          // Send text message
+          await wahaRequest('POST', '/api/sendText', {
+            session: sessionName,
+            chatId: chatId,
+            text: message
+          });
+        }
+
+        results.push({ phone, success: true });
+        console.log(`[WAHA_BROADCAST] ✅ Sent to ${phone}`);
+
+        // Delay between messages in batch
+        if (messageDelay > 0) {
+          await new Promise(resolve => setTimeout(resolve, messageDelay));
+        }
+
+      } catch (error) {
+        results.push({ phone: recipient.phone || recipient, success: false, error: error.message });
+        console.error(`[WAHA_BROADCAST] ❌ Failed to send to ${recipient.phone || recipient}:`, error.message);
+      }
+    }
+
+    // Delay between batches
+    if (i + batchSize < recipients.length && batchDelay > 0) {
+      console.log(`[WAHA_BROADCAST] Waiting ${batchDelay}ms before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, batchDelay));
+    }
+  }
+
+  const totalSent = results.filter(r => r.success).length;
+  const totalFailed = results.filter(r => !r.success).length;
+
+  console.log(`[WAHA_BROADCAST] Complete! Sent: ${totalSent}, Failed: ${totalFailed}`);
+
+  return {
+    success: true,
+    totalSent,
+    totalFailed,
+    results,
+    summary: {
+      successRate: `${Math.round((totalSent / recipients.length) * 100)}%`
+    }
+  };
+}
+
+// Export for use in broadcast.js
+module.exports.sendBroadcastViaWaha = sendBroadcastViaWaha;
+
 // Agent Login API (MUST be before app.use('/api', apiRouter))
 app.post('/api/agent-login', async (req, res) => {
   try {

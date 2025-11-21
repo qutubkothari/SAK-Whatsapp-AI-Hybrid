@@ -2275,6 +2275,11 @@
                         <i class="fas fa-bullhorn mr-3 text-indigo-600"></i>Send Broadcast
                     </h2>
                     
+                    <!-- Bot Delivery Method Indicator -->
+                    <div id="botDeliveryIndicator" class="mb-6 p-4 rounded-lg border-2">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
                     <form id="broadcastForm" class="space-y-6">
                         <!-- Campaign Name -->
                         <div>
@@ -2700,6 +2705,43 @@
         const saveDailyLimitBtn = document.getElementById('saveDailyLimitBtn');
         if (saveDailyLimitBtn) {
             saveDailyLimitBtn.addEventListener('click', updateDailyLimit);
+        }
+        
+        // Update bot delivery method indicator
+        const savedFeatures = JSON.parse(localStorage.getItem(`tenant_features_${state.session?.tenantId}`)) || {};
+        const botDeliveryMethod = savedFeatures.bot_delivery_method || 'desktop';
+        const indicator = document.getElementById('botDeliveryIndicator');
+        
+        if (botDeliveryMethod === 'cloud') {
+            indicator.className = 'mb-6 p-4 rounded-lg border-2 bg-blue-50 border-blue-300';
+            indicator.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cloud text-blue-600 text-2xl"></i>
+                    <div class="flex-1">
+                        <p class="font-bold text-blue-900">24/7 Cloud Bot Active (Waha)</p>
+                        <p class="text-sm text-blue-700">Broadcasts will be sent through the always-online cloud bot</p>
+                    </div>
+                    <button type="button" onclick="window.location.href='/clients.html'" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                        <i class="fas fa-cog mr-1"></i> Change
+                    </button>
+                </div>
+            `;
+        } else {
+            indicator.className = 'mb-6 p-4 rounded-lg border-2 bg-gray-50 border-gray-300';
+            indicator.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-desktop text-gray-600 text-2xl"></i>
+                    <div class="flex-1">
+                        <p class="font-bold text-gray-900">Desktop Agent Mode</p>
+                        <p class="text-sm text-gray-700">Broadcasts require your PC to be online with WhatsApp Web connected</p>
+                    </div>
+                    <button type="button" onclick="window.location.href='/clients.html'" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm font-semibold">
+                        <i class="fas fa-cog mr-1"></i> Switch to Cloud Bot
+                    </button>
+                </div>
+            `;
         }
         
         // Load broadcast history
@@ -3841,6 +3883,10 @@
             return;
         }
 
+        // Get bot delivery method from saved features
+        const savedFeatures = JSON.parse(localStorage.getItem(`tenant_features_${tenantId}`)) || {};
+        const botDeliveryMethod = savedFeatures.bot_delivery_method || 'desktop';
+
         const payload = {
             tenantId,
             campaignName,
@@ -3852,7 +3898,8 @@
             imageBase64: messageType === 'image' ? uploadedImageBase64 : null,
             batchSize,
             messageDelay,
-            batchDelay
+            batchDelay,
+            botDeliveryMethod: botDeliveryMethod
         };
 
         // Show loading state

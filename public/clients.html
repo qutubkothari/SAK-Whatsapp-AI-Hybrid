@@ -538,6 +538,28 @@
                                         </div>
                                     </div>
 
+                                    <!-- Bot Delivery Method -->
+                                    <div class="border-b pb-3">
+                                        <h4 class="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                                            <i class="fas fa-server text-orange-600"></i>
+                                            Bot Delivery Method
+                                        </h4>
+                                        <div class="ml-6 space-y-2">
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" name="bot_delivery_${tenant.id}" value="desktop" id="bot_delivery_desktop_${tenant.id}" checked class="text-orange-600">
+                                                <span class="text-sm">
+                                                    <i class="fas fa-desktop text-gray-600"></i> Desktop Agent (Requires PC on)
+                                                </span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" name="bot_delivery_${tenant.id}" value="cloud" id="bot_delivery_cloud_${tenant.id}" class="text-orange-600">
+                                                <span class="text-sm">
+                                                    <i class="fas fa-cloud text-blue-600"></i> 24/7 Cloud Bot (Waha - Always Online)
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <!-- Dashboard Features -->
                                     <div>
                                         <h4 class="font-medium text-gray-800 mb-2 flex items-center gap-2">
@@ -616,6 +638,13 @@
                         }
                     });
                     
+                    // Set bot delivery method radio button
+                    const botDelivery = savedFeatures.bot_delivery_method || 'desktop';
+                    const deliveryRadio = document.getElementById(`bot_delivery_${botDelivery}_${tenant.id}`);
+                    if (deliveryRadio) {
+                        deliveryRadio.checked = true;
+                    }
+                    
                     showDetailsModal();
                 } else {
                     showError('Failed to load tenant details');
@@ -645,6 +674,7 @@
                     bot_order_processing: document.getElementById(`bot_order_processing_${tenantId}`)?.checked || false,
                     bot_payment_links: document.getElementById(`bot_payment_links_${tenantId}`)?.checked || false,
                     bot_customer_support: document.getElementById(`bot_customer_support_${tenantId}`)?.checked || false,
+                    bot_delivery_method: document.querySelector(`input[name="bot_delivery_${tenantId}"]:checked`)?.value || 'desktop',
                     tab_products: document.getElementById(`tab_products_${tenantId}`)?.checked || false,
                     tab_customers: document.getElementById(`tab_customers_${tenantId}`)?.checked || false,
                     tab_orders: document.getElementById(`tab_orders_${tenantId}`)?.checked || false,
