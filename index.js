@@ -486,8 +486,8 @@ app.get('/api/waha/session/:sessionName/qr', async (req, res) => {
     
     console.log(`[WAHA] Getting QR code for: ${sessionName}`);
     
-    // Waha API endpoint for QR code
-    const response = await wahaRequest('GET', `/api/sessions/${sessionName}/auth/qr`);
+    // Waha API endpoint for QR code (correct format: /api/{session}/auth/qr)
+    const response = await wahaRequest('GET', `/api/${sessionName}/auth/qr`);
 
     res.json({
       ok: true,
