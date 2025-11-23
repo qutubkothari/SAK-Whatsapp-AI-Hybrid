@@ -1,5 +1,5 @@
 # Force EC2 Update and Restart Waha
-$EC2_IP = "13.235.18.119"
+$EC2_IP = "43.205.192.171"
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "   Force Update EC2 & Restart Waha" -ForegroundColor Cyan

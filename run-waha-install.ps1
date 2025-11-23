@@ -1,5 +1,5 @@
 # Run Waha Installation on EC2
-$EC2_IP = "13.235.18.119"
+$EC2_IP = "43.205.192.171"
 $EC2_USER = "ubuntu"
 
 Write-Host "`n========================================" -ForegroundColor Green
