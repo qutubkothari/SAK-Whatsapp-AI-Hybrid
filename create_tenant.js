@@ -5,10 +5,7 @@ async function createTenant() {
         id: '45bebb5d-cbab-4338-a3eb-a5b0c4aeea4e',
         business_name: 'SAK Solutions',
         phone_number: '971507055253',
-        plan: 'premium',
-        business_description: 'Technology and Electronics Sales',
-        business_hours: '9 AM - 6 PM, Monday to Friday',
-        created_at: new Date().toISOString()
+        plan: 'premium'
     };
     
     console.log('Creating tenant:', tenantData);
