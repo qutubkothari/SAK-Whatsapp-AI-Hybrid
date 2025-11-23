@@ -2866,17 +2866,17 @@
             document.getElementById('btnConnect').disabled = true;
             document.getElementById('btnConnect').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Connecting...';
 
-            // Add timeout to prevent hanging
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-            const response = await fetch('/api/whatsapp-web/connect', {
+            // Use Waha session API - create session name from tenant ID
+            const sessionName = `tenant_${tenantId.substring(0, 8)}`;
+            
+            const response = await fetch('/api/waha/session/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tenantId }),
-                signal: controller.signal
+                body: JSON.stringify({ 
+                    tenantId: tenantId,
+                    session: sessionName 
+                })
             });
-            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -2885,10 +2885,11 @@
             const result = await response.json();
             
             if (result.success) {
-                showNotification('Connection initiated! Scan the QR code below.', 'success');
+                showNotification('Waha session started! Waiting for QR code...', 'success');
                 // Show QR section and start polling for QR code
                 document.getElementById('qrCodeSection').classList.remove('hidden');
-                pollForQRCode();
+                // Wait a moment for session to initialize before polling
+                setTimeout(() => pollForQRCode(sessionName), 2000);
             } else {
                 showNotification('Connection failed: ' + (result.error || 'Unknown error'), 'error');
             }
@@ -2914,16 +2915,17 @@
             document.getElementById('btnDisconnect').disabled = true;
             document.getElementById('btnDisconnect').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Disconnecting...';
 
-            const response = await fetch('/api/whatsapp-web/disconnect', {
+            const sessionName = `tenant_${tenantId.substring(0, 8)}`;
+            
+            const response = await fetch(`/api/waha/session/${sessionName}/stop`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tenantId })
+                headers: { 'Content-Type': 'application/json' }
             });
 
             const result = await response.json();
             
             if (result.success) {
-                showNotification('Disconnected successfully', 'success');
+                showNotification('Waha session stopped successfully', 'success');
                 document.getElementById('qrCodeSection').classList.add('hidden');
                 await refreshWhatsAppStatus();
             } else {
@@ -2943,14 +2945,9 @@
         if (!tenantId) return;
 
         try {
-            // Add timeout to fetch request
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-
-            const response = await fetch(`/api/whatsapp-web/status/${tenantId}`, {
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+            const sessionName = `tenant_${tenantId.substring(0, 8)}`;
+            
+            const response = await fetch(`/api/waha/session/${sessionName}/status`);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -2961,50 +2958,43 @@
             const statusDiv = document.getElementById('waWebStatus');
             if (!statusDiv) return;
 
-            const status = result.status || 'disconnected';
-            const connection = result.connection;
+            // Waha status mapping: STOPPED, STARTING, SCAN_QR_CODE, WORKING, FAILED
+            const wahaStatus = result.status || 'STOPPED';
+            const sessionName = `tenant_${tenantId.substring(0, 8)}`;
 
             let statusColor = 'gray';
             let statusText = 'Disconnected';
             let statusIcon = 'fa-circle';
 
-            switch (status) {
-                case 'ready':
+            switch (wahaStatus) {
+                case 'WORKING':
                     statusColor = 'green';
-                    statusText = 'Connected & Ready';
+                    statusText = 'Connected & Ready ✓';
                     statusIcon = 'fa-check-circle';
                     document.getElementById('qrCodeSection')?.classList.add('hidden');
                     document.getElementById('connectionDetails')?.classList.remove('hidden');
                     break;
-                case 'qr_ready':
+                case 'SCAN_QR_CODE':
                     statusColor = 'yellow';
-                    statusText = 'Waiting for QR Scan';
+                    statusText = 'Scan QR Code to Connect';
                     statusIcon = 'fa-qrcode';
                     document.getElementById('qrCodeSection')?.classList.remove('hidden');
+                    pollForQRCode(sessionName);
                     break;
-                case 'initializing':
+                case 'STARTING':
                     statusColor = 'blue';
-                    statusText = 'Initializing...';
+                    statusText = 'Starting Waha Session...';
                     statusIcon = 'fa-spinner fa-spin';
                     break;
-                case 'authenticated':
-                    statusColor = 'blue';
-                    statusText = 'Authenticated - Loading...';
-                    statusIcon = 'fa-spinner fa-spin';
-                    break;
-                case 'auth_failed':
+                case 'FAILED':
                     statusColor = 'red';
-                    statusText = 'Authentication Failed';
+                    statusText = 'Connection Failed';
                     statusIcon = 'fa-exclamation-circle';
                     break;
-                case 'error':
-                    statusColor = 'red';
-                    statusText = 'Error';
-                    statusIcon = 'fa-times-circle';
-                    break;
+                case 'STOPPED':
                 default:
                     statusColor = 'gray';
-                    statusText = 'Disconnected';
+                    statusText = 'Not Connected';
                     statusIcon = 'fa-circle';
                     document.getElementById('qrCodeSection')?.classList.add('hidden');
                     document.getElementById('connectionDetails')?.classList.add('hidden');
@@ -3012,26 +3002,29 @@
 
             statusDiv.innerHTML = `
                 <div class="flex items-center space-x-4">
-                    <div class="w-3 h-3 rounded-full bg-${statusColor}-500 ${status === 'initializing' || status === 'authenticated' ? 'animate-pulse' : ''}"></div>
+                    <div class="w-3 h-3 rounded-full bg-${statusColor}-500 ${wahaStatus === 'STARTING' ? 'animate-pulse' : ''}"></div>
                     <div class="flex-1">
                         <div class="flex items-center space-x-2">
                             <i class="fas ${statusIcon} text-${statusColor}-500"></i>
                             <span class="font-semibold text-gray-800">${statusText}</span>
                         </div>
-                        ${connection?.phone_number ? `<p class="text-sm text-gray-600 mt-1">Phone: ${connection.phone_number}</p>` : ''}
-                        ${connection?.connected_at ? `<p class="text-sm text-gray-500 mt-1">Connected: ${new Date(connection.connected_at).toLocaleString()}</p>` : ''}
+                        <p class="text-sm text-gray-500 mt-1">Waha Cloud Bot - Session: ${sessionName}</p>
                     </div>
                 </div>
             `;
 
             // Show connection details if connected
-            if (status === 'ready' && connection) {
+            if (wahaStatus === 'WORKING') {
                 const detailsDiv = document.getElementById('connectionInfo');
                 if (detailsDiv) {
                     detailsDiv.innerHTML = `
-                        <p><strong>Tenant ID:</strong> ${connection.tenant_id}</p>
-                        <p><strong>Phone Number:</strong> ${connection.phone_number || 'N/A'}</p>
-                        <p><strong>Status:</strong> ${connection.status}</p>
+                        <p><strong>Session Name:</strong> ${sessionName}</p>
+                        <p><strong>Status:</strong> ${wahaStatus}</p>
+                        <p><strong>Provider:</strong> Waha Cloud Bot (24/7)</p>
+                        <p><strong>Connection:</strong> Active and Ready</p>
+                    `;
+                }
+            }
                         <p><strong>Connected At:</strong> ${connection.connected_at ? new Date(connection.connected_at).toLocaleString() : 'N/A'}</p>
                         <p><strong>Last Updated:</strong> ${connection.updated_at ? new Date(connection.updated_at).toLocaleString() : 'N/A'}</p>
                     `;
@@ -3066,30 +3059,49 @@
         }
     }
 
-    async function pollForQRCode() {
-        const tenantId = state.session?.tenantId;
-        if (!tenantId) return;
+    async function pollForQRCode(sessionName) {
+        if (!sessionName) {
+            const tenantId = state.session?.tenantId;
+            if (!tenantId) return;
+            sessionName = `tenant_${tenantId.substring(0, 8)}`;
+        }
 
         try {
-            const response = await fetch(`/api/whatsapp-web/qr/${tenantId}`);
-            const result = await response.json();
-
+            // Get QR code image from Waha
             const qrDisplay = document.getElementById('qrCodeDisplay');
             if (!qrDisplay) return;
 
-            if (result.qrCode && result.status === 'qr_ready') {
+            qrDisplay.innerHTML = '<div class="loading-spinner mx-auto mb-4"></div><p class="text-gray-500">Loading QR code from Waha...</p>';
+
+            const response = await fetch(`/api/waha/session/${sessionName}/qr`);
+            
+            if (response.ok && response.headers.get('content-type')?.includes('image')) {
+                // QR code image received
+                const blob = await response.blob();
+                const qrUrl = URL.createObjectURL(blob);
+                
                 qrDisplay.innerHTML = `
-                    <img src="${result.qrCode}" alt="QR Code" class="mx-auto" style="max-width: 300px;" />
-                    <p class="text-gray-600 mt-4">Scan this code with WhatsApp on your phone</p>
+                    <img src="${qrUrl}" alt="QR Code" class="mx-auto border-4 border-gray-200 rounded-lg" style="max-width: 300px;" />
+                    <p class="text-gray-600 mt-4 font-semibold">📱 Scan with WhatsApp</p>
+                    <p class="text-sm text-gray-500 mt-2">WhatsApp → Settings → Linked Devices → Link a Device</p>
+                    <p class="text-xs text-gray-400 mt-3">QR code refreshes automatically</p>
                 `;
-            } else if (result.status === 'ready') {
-                qrDisplay.innerHTML = '<p class="text-green-600"><i class="fas fa-check-circle mr-2"></i>Connected successfully!</p>';
-                document.getElementById('qrCodeSection')?.classList.add('hidden');
+                
+                // Auto-refresh QR after 30 seconds
+                setTimeout(() => pollForQRCode(sessionName), 30000);
             } else {
-                qrDisplay.innerHTML = `<p class="text-gray-500">${result.status || 'No QR code available'}</p>`;
+                const result = await response.json();
+                qrDisplay.innerHTML = `<p class="text-gray-500">${result.error || 'Waiting for QR code...'}</p>`;
+                // Retry after 3 seconds
+                setTimeout(() => pollForQRCode(sessionName), 3000);
             }
         } catch (error) {
             console.error('QR poll error:', error);
+            const qrDisplay = document.getElementById('qrCodeDisplay');
+            if (qrDisplay) {
+                qrDisplay.innerHTML = '<p class="text-red-500">Error loading QR code. Retrying...</p>';
+                setTimeout(() => pollForQRCode(sessionName), 5000);
+            }
         }
     }
 
