@@ -4,8 +4,8 @@
  */
 
 require('dotenv').config();
-const MessageProvider = require('../services/messageProvider');
-const { supabase } = require('../services/config');
+const MessageProvider = require('../../services/messageProvider');
+const { supabase } = require('../../services/config');
 
 async function testMessageProvider() {
     console.log('\n🧪 Testing MessageProvider\n');
