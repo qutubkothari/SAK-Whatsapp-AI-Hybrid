@@ -18,7 +18,7 @@ async function updateZohoCredentials() {
       zoho_client_secret: 'd0d6022ecf1f7afcac4022fad835ac512b92d06c5f',
       zoho_organization_id: '60006942979'
     })
-    .eq('tenant_id', tenantId)
+    .eq('id', tenantId)
     .select();
 
   if (error) {
