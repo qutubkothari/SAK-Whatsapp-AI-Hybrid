@@ -1,8 +1,9 @@
+require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  'https://upswoeziirmshuzelizz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwc3dvZXppaXJtc2h1emVsaXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4NzYzOTksImV4cCI6MjA2MjQ1MjM5OX0.HYvd7znBd93yO-e2GCcwgL3Ug8pAGWLDgp0Z4zzgezE'
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 async function updateZohoCredentials() {
