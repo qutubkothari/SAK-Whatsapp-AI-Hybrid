@@ -1,0 +1,136 @@
+═══════════════════════════════════════════════════════════
+  SAK WhatsApp AI - Client Update Notification
+═══════════════════════════════════════════════════════════
+
+Subject: ✅ WhatsApp Agent Fix Available - Version 1.0.6
+
+Dear Client,
+
+We've identified and fixed the issue where messages were not being sent/received despite successful WhatsApp connection. A new version (1.0.6) is now ready.
+
+═══════════════════════════════════════════════════════════
+🔧 WHAT WAS FIXED
+═══════════════════════════════════════════════════════════
+
+ISSUE: Messages not sending/receiving after successful connection
+ROOT CAUSE: Server timeout during AI message processing
+SOLUTION: Added timeout protection + enhanced error handling
+
+═══════════════════════════════════════════════════════════
+📥 UPGRADE INSTRUCTIONS (For Existing v1.0.5 Users)
+═══════════════════════════════════════════════════════════
+
+1. DOWNLOAD NEW VERSION
+   File: SAK-WhatsApp-Agent-Windows-v1.0.6.zip
+   Size: 34.59 MB
+
+2. EXTRACT TO SAME LOCATION
+   - Extract to where v1.0.5 is installed
+   - When asked to replace files, select "Yes to All"
+   - Your .env configuration will be preserved automatically
+
+3. RESTART AGENT
+   - Close the old agent window (Ctrl+C if running)
+   - Run START-AGENT.bat
+   - Scan QR code again
+   - Test by sending yourself a message
+
+═══════════════════════════════════════════════════════════
+📱 FIRST-TIME SETUP (New Users)
+═══════════════════════════════════════════════════════════
+
+1. Extract SAK-WhatsApp-Agent-Windows-v1.0.6.zip
+2. Run SETUP.bat
+3. Enter your credentials:
+   - Tenant ID: 03a46fcf-596a-46c8-83d7-73260ef426ee
+   - WhatsApp Phone: 917737835253
+   - API Key: (press Enter to skip)
+4. Run START-AGENT.bat
+5. Scan QR code with WhatsApp
+6. Test by sending a message
+
+═══════════════════════════════════════════════════════════
+✨ WHAT'S NEW IN v1.0.6
+═══════════════════════════════════════════════════════════
+
+✅ FIXED: Message sending/receiving now works reliably
+✅ IMPROVED: Better error messages for troubleshooting
+✅ ENHANCED: Detailed logging for support diagnosis
+✅ OPTIMIZED: Faster response times (45s max)
+✅ PROTECTED: Timeout handling prevents hanging
+
+═══════════════════════════════════════════════════════════
+📊 TESTING YOUR INSTALLATION
+═══════════════════════════════════════════════════════════
+
+After setup, you should see:
+1. ✅ QR code appears within 15-20 seconds
+2. ✅ "WhatsApp client initialized successfully"
+3. ✅ When you send a test message:
+   📨 Message from [number]: [your message]
+   📤 Sending to cloud server...
+   📥 Received response from cloud
+   🤖 AI Response: [reply]
+   ✅ Reply sent
+
+═══════════════════════════════════════════════════════════
+⚠️ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════
+
+If you see "❌ Error processing message":
+1. Check your internet connection
+2. Verify credentials in .env file
+3. Run RESET-SESSION.bat and try again
+4. Contact support with the full error message
+
+Common Issues:
+❌ "Tenant not found" → Check TENANT_ID in .env
+❌ "Request timed out" → Check internet connection
+❌ "Cannot find module" → Re-extract the ZIP file
+
+═══════════════════════════════════════════════════════════
+📧 SUPPORT
+═══════════════════════════════════════════════════════════
+
+If you experience any issues:
+1. Capture the full terminal output from START-AGENT.bat
+2. Note the exact error message
+3. Include timestamp when issue occurred
+4. Email to: support@saksolution.com
+
+═══════════════════════════════════════════════════════════
+📝 VERSION HISTORY
+═══════════════════════════════════════════════════════════
+
+v1.0.6 (Nov 27, 2025) - RECOMMENDED
+  ✅ Fixed message sending/receiving
+  ✅ Added timeout protection
+  ✅ Enhanced error logging
+
+v1.0.5 (Nov 26, 2025) - DEPRECATED
+  ✅ Fixed QR code generation
+  ⚠️ Messages not working (upgrade to 1.0.6)
+
+v1.0.4 and earlier - DEPRECATED
+  Multiple bugs fixed in later versions
+
+═══════════════════════════════════════════════════════════
+🚀 DOWNLOAD LINK
+═══════════════════════════════════════════════════════════
+
+[Attach: SAK-WhatsApp-Agent-Windows-v1.0.6.zip]
+
+Location on your server:
+client-distribution/SAK-WhatsApp-Agent-Windows-v1.0.6.zip
+Size: 34.59 MB
+SHA-256: [Generate if needed for security]
+
+═══════════════════════════════════════════════════════════
+
+Thank you for using SAK WhatsApp AI!
+
+Best regards,
+SAK Solution Team
+www.saksolution.com
+
+═══════════════════════════════════════════════════════════
